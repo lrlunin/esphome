@@ -98,19 +98,23 @@ std::string WebServer::get_config_json() {
 
 void WebServer::setup() {
   ESP_LOGI(TAG, "Initializing history traces");
-  for (auto &trace : this->history_traces_) {
-    trace.second->init(100);
-    ESP_LOGI(TAG, "Initiated sensor id %s", trace.first.c_str());
-  }
-  ESP_LOGI(TAG, "Init callbacks for sensors");
-  for (auto &sensor : this->sensors_) {
-    sensor->add_on_state_callback([](float state){
-      ESP_LOGI("sensor_collback", "state: %f", state);
+  // pair is a key:value of sensor_ptr:historyTrace_ptr
+  for (auto &pair : this->history_traces_) {
+    sensor::Sensor* sensor = pair.first;
+    HistoryTrace* trace = pair.second;
+
+    std::string sensor_id = sensor->get_object_id();
+
+    trace->init(10);
+    ESP_LOGI(TAG, "Initiated sensor id %s", sensor_id.c_str());
+
+
+    sensor->add_on_state_callback([trace, sensor_id](float state) {
+      ESP_LOGI(TAG, "sensor_id: %s, State: %f", sensor_id.c_str(), state);
+      trace->take_sample(state);
     });
-    // sensor->add_on_state_callback([this, sensor](float state) {
-    //   this->history_traces_[sensor->get_object_id()]->take_sample(state);
-    // });
-  }
+    trace->set_update_time_ms(5000);
+  }  
 
   ESP_LOGCONFIG(TAG, "Setting up web server...");
   this->setup_controller(this->include_internal_);
@@ -260,10 +264,6 @@ void HistoryTrace::take_sample(float data) {
 void WebServer::on_sensor_update(sensor::Sensor *obj, float state) {
   if (this->events_.count() == 0)
     return;
-  // if for sensor there is no history data, then create it
-  if (this->history_traces_.find(obj->get_object_id()) != this->history_traces_.end()) {
-    this->history_traces_[obj->get_object_id()]->take_sample(state);
-  }
   this->events_.send(this->sensor_json(obj, state, DETAIL_STATE).c_str(), "state");
 }
 void WebServer::handle_sensor_request(AsyncWebServerRequest *request, const UrlMatch &match) {
@@ -296,15 +296,13 @@ std::string WebServer::sensor_json(sensor::Sensor *obj, float value, JsonDetail 
     }
     root["id"] = "sensor-" + obj->get_object_id();
     root["name"] = obj->get_name();
-    if (this->history_traces_.find(obj->get_object_id()) != this->history_traces_.end()) {
-      HistoryTrace *history_trace = this->history_traces_[obj->get_object_id()];
-      JsonArray data_array = root.createNestedArray("value");
-      for (float sample :history_trace->samples_) {
-        data_array.add(sample);
+    if (this->history_traces_.find(obj) != this->history_traces_.end()) {
+      HistoryTrace *history_trace = this->history_traces_[obj];
+      JsonArray data_array = root.createNestedArray("values");
+      // this needs to be replaced with samples->get_value(i)
+      for (uint32_t i = 0; i < history_trace->get_length(); i++) {
+        data_array.add(history_trace->get_value(i));
       }
-    }
-    else {
-      root["value"] = "NA";
     }
     root["state"] = state;
     if (start_config == DETAIL_ALL) {

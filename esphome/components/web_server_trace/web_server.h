@@ -372,8 +372,8 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   void add_sorting_group(uint64_t group_id, const std::string &group_name, float weight);
   
   // add sensor_id : historyTrace to the map 
-  void add_history_trace(sensor::Sensor *sensor, HistoryTrace *trace) { history_traces_[sensor->get_object_id()] = trace; };
-  void add_sensor(sensor::Sensor *sensor) { sensors_.push_back(sensor); }
+  void add_history_trace(sensor::Sensor *sensor, HistoryTrace *trace) { history_traces_[sensor] = trace; };
+  //void add_sensor(sensor::Sensor *sensor) { sensors_.push_back(sensor); }
  protected:
   void schedule_(std::function<void()> &&f);
   friend ListEntitiesIterator;
@@ -383,8 +383,8 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   std::map<EntityBase *, SortingComponents> sorting_entitys_;
   std::map<uint64_t, SortingGroup> sorting_groups_;
   // object_id -> history data
-  std::map<std::string, HistoryTrace*> history_traces_;
-  std::vector<sensor::Sensor *> sensors_;
+  std::map<sensor::Sensor*, HistoryTrace*> history_traces_;
+  // std::vector<sensor::Sensor *> sensors_;
 
 #if USE_WEBSERVER_TRACE_VERSION == 1
   const char *css_url_{nullptr};
