@@ -316,7 +316,7 @@ async def to_code(config):
     for conf_trace in config[CONF_TRACES]:
         history_trace_obj = cg.new_Pvariable(conf_trace[CONF_ID], HistoryTrace())
         # creating a sensor object
-        sens = await cg.get_variable(conf_trace[CONF_SENSOR])
+        sens_obj = await cg.get_variable(conf_trace[CONF_SENSOR])
         cg.add(history_trace_obj.set_name(conf_trace[CONF_SENSOR].id))
-        cg.add(var.add_history_trace(sens, history_trace_obj))
-        cg.add(var.add_sensor(sens))
+        cg.add(var.add_history_trace(sens_obj, history_trace_obj))
+        #cg.add(var.add_sensor(sens))
