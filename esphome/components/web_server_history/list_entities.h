@@ -1,11 +1,11 @@
 #pragma once
 
 #include "esphome/core/defines.h"
-#ifdef USE_WEBSERVER_TRACE
+#ifdef USE_WEBSERVER
 #include "esphome/core/component.h"
 #include "esphome/core/component_iterator.h"
 namespace esphome {
-namespace web_server_trace {
+namespace web_server {
 
 class WebServer;
 

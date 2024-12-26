@@ -1,5 +1,5 @@
 #include "list_entities.h"
-#ifdef USE_WEBSERVER_TRACE
+#ifdef USE_WEBSERVER
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 #include "esphome/core/util.h"
@@ -7,7 +7,7 @@
 #include "web_server.h"
 
 namespace esphome {
-namespace web_server_trace {
+namespace web_server {
 
 ListEntitiesIterator::ListEntitiesIterator(WebServer *web_server) : web_server_(web_server) {}
 

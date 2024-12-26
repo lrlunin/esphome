@@ -3,7 +3,7 @@
 #include "list_entities.h"
 
 #include "esphome/components/web_server_base/web_server_base.h"
-#ifdef USE_WEBSERVER_TRACE
+#ifdef USE_WEBSERVER
 #include "esphome/core/component.h"
 #include "esphome/core/controller.h"
 #include "esphome/core/entity_base.h"
@@ -16,45 +16,23 @@
 #include <deque>
 #endif
 
-#if USE_WEBSERVER_TRACE_VERSION >= 2
+#if USE_WEBSERVER_VERSION >= 2
 extern const uint8_t ESPHOME_WEBSERVER_INDEX_HTML[] PROGMEM;
 extern const size_t ESPHOME_WEBSERVER_INDEX_HTML_SIZE;
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
 extern const uint8_t ESPHOME_WEBSERVER_CSS_INCLUDE[] PROGMEM;
 extern const size_t ESPHOME_WEBSERVER_CSS_INCLUDE_SIZE;
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
 extern const uint8_t ESPHOME_WEBSERVER_JS_INCLUDE[] PROGMEM;
 extern const size_t ESPHOME_WEBSERVER_JS_INCLUDE_SIZE;
 #endif
 
 namespace esphome {
-namespace web_server_trace {
-
-class HistoryTrace {
- public:
-  void init(int length);
-  ~HistoryTrace();
-  void set_name(std::string name) { name_ = std::move(name); }
-  std::string get_name() { return name_; }
-  void set_update_time_ms(uint32_t update_time_ms) { update_time_ = update_time_ms; }
-  void take_sample(float data);
-  int get_length() const { return length_; }
-  float get_value(int idx) const { return samples_[(count_ + length_ - 1 - idx) % length_]; }
-  std::vector<float> samples_;
- protected:
-  uint32_t last_sample_;
-  uint32_t period_{0};       /// in ms
-  uint32_t update_time_{0};  /// in ms
-  int length_;
-  int count_{0};
-  float recent_min_{NAN};
-  float recent_max_{NAN};
-  std::string name_{""};
-};
+namespace web_server {
 
 /// Internal helper struct that is used to parse incoming URLs
 struct UrlMatch {
@@ -89,7 +67,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
  public:
   WebServer(web_server_base::WebServerBase *base);
 
-#if USE_WEBSERVER_TRACE_VERSION == 1
+#if USE_WEBSERVER_VERSION == 1
   /** Set the URL to the CSS <link> that's sent to each client. Defaults to
    * https://esphome.io/_static/webserver-v1.min.css
    *
@@ -105,7 +83,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   void set_js_url(const char *js_url);
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
   /** Set local path to the script that's embedded in the index page. Defaults to
    *
    * @param css_include Local path to web server script.
@@ -113,7 +91,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   void set_css_include(const char *css_include);
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
   /** Set local path to the script that's embedded in the index page. Defaults to
    *
    * @param js_include Local path to web server script.
@@ -155,17 +133,17 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   /// Return the webserver configuration as JSON.
   std::string get_config_json();
 
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
   /// Handle included css request under '/0.css'.
   void handle_css_request(AsyncWebServerRequest *request);
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
   /// Handle included js request under '/0.js'.
   void handle_js_request(AsyncWebServerRequest *request);
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_PRIVATE_NETWORK_ACCESS
+#ifdef USE_WEBSERVER_PRIVATE_NETWORK_ACCESS
   // Handle Private Network Access CORS OPTIONS request
   void handle_pna_cors_request(AsyncWebServerRequest *request);
 #endif
@@ -176,7 +154,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   void handle_sensor_request(AsyncWebServerRequest *request, const UrlMatch &match);
 
   /// Dump the sensor state with its value as a JSON string.
-  std::string sensor_json(sensor::Sensor *obj, float value, JsonDetail start_config);
+  virtual std::string sensor_json(sensor::Sensor *obj, float value, JsonDetail start_config);
 #endif
 
 #ifdef USE_SWITCH
@@ -370,10 +348,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
 
   void add_entity_config(EntityBase *entity, float weight, uint64_t group);
   void add_sorting_group(uint64_t group_id, const std::string &group_name, float weight);
-  
-  // add sensor_id : historyTrace to the map 
-  void add_history_trace(sensor::Sensor *sensor, HistoryTrace *trace) { history_traces_[sensor] = trace; };
-  //void add_sensor(sensor::Sensor *sensor) { sensors_.push_back(sensor); }
+
  protected:
   void schedule_(std::function<void()> &&f);
   friend ListEntitiesIterator;
@@ -382,18 +357,15 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   ListEntitiesIterator entities_iterator_;
   std::map<EntityBase *, SortingComponents> sorting_entitys_;
   std::map<uint64_t, SortingGroup> sorting_groups_;
-  // object_id -> history data
-  std::map<sensor::Sensor*, HistoryTrace*> history_traces_;
-  // std::vector<sensor::Sensor *> sensors_;
 
-#if USE_WEBSERVER_TRACE_VERSION == 1
+#if USE_WEBSERVER_VERSION == 1
   const char *css_url_{nullptr};
   const char *js_url_{nullptr};
 #endif
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
   const char *css_include_{nullptr};
 #endif
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
   const char *js_include_{nullptr};
 #endif
   bool include_internal_{false};

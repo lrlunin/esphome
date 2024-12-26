@@ -1,5 +1,5 @@
 #include "web_server.h"
-#ifdef USE_WEBSERVER_TRACE
+#ifdef USE_WEBSERVER
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/util.h"
 #include "esphome/core/application.h"
@@ -26,20 +26,20 @@
 #include "esphome/components/climate/climate.h"
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_LOCAL
-#if USE_WEBSERVER_TRACE_VERSION == 2
+#ifdef USE_WEBSERVER_LOCAL
+#if USE_WEBSERVER_VERSION == 2
 #include "server_index_v2.h"
-#elif USE_WEBSERVER_TRACE_VERSION == 3
+#elif USE_WEBSERVER_VERSION == 3
 #include "server_index_v3.h"
 #endif
 #endif
 
 namespace esphome {
-namespace web_server_trace {
+namespace web_server {
 
-static const char *const TAG = "web_server_trace";
+static const char *const TAG = "web_server";
 
-#ifdef USE_WEBSERVER_TRACE_PRIVATE_NETWORK_ACCESS
+#ifdef USE_WEBSERVER_PRIVATE_NETWORK_ACCESS
 static const char *const HEADER_PNA_NAME = "Private-Network-Access-Name";
 static const char *const HEADER_PNA_ID = "Private-Network-Access-ID";
 static const char *const HEADER_CORS_REQ_PNA = "Access-Control-Request-Private-Network";
@@ -79,10 +79,10 @@ WebServer::WebServer(web_server_base::WebServerBase *base)
 #endif
 }
 
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
 void WebServer::set_css_include(const char *css_include) { this->css_include_ = css_include; }
 #endif
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
 void WebServer::set_js_include(const char *js_include) { this->js_include_ = js_include; }
 #endif
 
@@ -97,25 +97,6 @@ std::string WebServer::get_config_json() {
 }
 
 void WebServer::setup() {
-  ESP_LOGI(TAG, "Initializing history traces");
-  // pair is a key:value of sensor_ptr:historyTrace_ptr
-  for (auto &pair : this->history_traces_) {
-    sensor::Sensor* sensor = pair.first;
-    HistoryTrace* trace = pair.second;
-
-    std::string sensor_id = sensor->get_object_id();
-
-    trace->init(10);
-    ESP_LOGI(TAG, "Initiated sensor id %s", sensor_id.c_str());
-
-
-    sensor->add_on_state_callback([trace, sensor_id](float state) {
-      ESP_LOGI(TAG, "sensor_id: %s, State: %f", sensor_id.c_str(), state);
-      trace->take_sample(state);
-    });
-    trace->set_update_time_ms(5000);
-  }  
-
   ESP_LOGCONFIG(TAG, "Setting up web server...");
   this->setup_controller(this->include_internal_);
   this->base_->init();
@@ -174,13 +155,13 @@ void WebServer::dump_config() {
 }
 float WebServer::get_setup_priority() const { return setup_priority::WIFI - 1.0f; }
 
-#ifdef USE_WEBSERVER_TRACE_LOCAL
+#ifdef USE_WEBSERVER_LOCAL
 void WebServer::handle_index_request(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", INDEX_GZ, sizeof(INDEX_GZ));
   response->addHeader("Content-Encoding", "gzip");
   request->send(response);
 }
-#elif USE_WEBSERVER_TRACE_VERSION >= 2
+#elif USE_WEBSERVER_VERSION >= 2
 void WebServer::handle_index_request(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response =
       request->beginResponse_P(200, "text/html", ESPHOME_WEBSERVER_INDEX_HTML, ESPHOME_WEBSERVER_INDEX_HTML_SIZE);
@@ -189,7 +170,7 @@ void WebServer::handle_index_request(AsyncWebServerRequest *request) {
 }
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_PRIVATE_NETWORK_ACCESS
+#ifdef USE_WEBSERVER_PRIVATE_NETWORK_ACCESS
 void WebServer::handle_pna_cors_request(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response = request->beginResponse(200, "");
   response->addHeader(HEADER_CORS_ALLOW_PNA, "true");
@@ -200,7 +181,7 @@ void WebServer::handle_pna_cors_request(AsyncWebServerRequest *request) {
 }
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
 void WebServer::handle_css_request(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response =
       request->beginResponse_P(200, "text/css", ESPHOME_WEBSERVER_CSS_INCLUDE, ESPHOME_WEBSERVER_CSS_INCLUDE_SIZE);
@@ -209,7 +190,7 @@ void WebServer::handle_css_request(AsyncWebServerRequest *request) {
 }
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
 void WebServer::handle_js_request(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response =
       request->beginResponse_P(200, "text/javascript", ESPHOME_WEBSERVER_JS_INCLUDE, ESPHOME_WEBSERVER_JS_INCLUDE_SIZE);
@@ -218,9 +199,6 @@ void WebServer::handle_js_request(AsyncWebServerRequest *request) {
 }
 #endif
 
-#include <ArduinoJson.h>
-
-// custom macro for JSON build
 #define set_json_id(root, obj, sensor, start_config) \
   (root)["id"] = sensor; \
   if (((start_config) == DETAIL_ALL)) { \
@@ -229,29 +207,8 @@ void WebServer::handle_js_request(AsyncWebServerRequest *request) {
     (root)["entity_category"] = (obj)->get_entity_category(); \
     if ((obj)->is_disabled_by_default()) \
       (root)["is_disabled_by_default"] = (obj)->is_disabled_by_default(); \
-}
-void HistoryTrace::init(int length) {
-  this->length_ = length;
-  this->samples_.resize(length, NAN);
-  this->last_sample_ = millis();
-}
-
-void HistoryTrace::take_sample(float data) {
-  uint32_t tm = millis();
-  uint32_t dt = tm - last_sample_;
-  last_sample_ = tm;
-
-  // Step data based on time
-  this->period_ += dt;
-  while (this->period_ >= this->update_time_) {
-    this->samples_[this->count_] = data;
-    this->period_ -= this->update_time_;
-    this->count_ = (this->count_ + 1) % this->length_;
-    ESP_LOGV(TAG, "Updating trace with value: %f", data);
   }
-}
 
-// setting value assuming the value is simple number
 #define set_json_value(root, obj, sensor, value, start_config) \
   set_json_id((root), (obj), sensor, start_config); \
   (root)["value"] = value;
@@ -276,7 +233,6 @@ void WebServer::handle_sensor_request(AsyncWebServerRequest *request, const UrlM
       if (param && param->value() == "all") {
         detail = DETAIL_ALL;
       }
-      // here value is assigned to obj->state
       std::string data = this->sensor_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
@@ -294,17 +250,7 @@ std::string WebServer::sensor_json(sensor::Sensor *obj, float value, JsonDetail 
       if (!obj->get_unit_of_measurement().empty())
         state += " " + obj->get_unit_of_measurement();
     }
-    root["id"] = "sensor-" + obj->get_object_id();
-    root["name"] = obj->get_name();
-    if (this->history_traces_.find(obj) != this->history_traces_.end()) {
-      HistoryTrace *history_trace = this->history_traces_[obj];
-      JsonArray data_array = root.createNestedArray("values");
-      // this needs to be replaced with samples->get_value(i)
-      for (uint32_t i = 0; i < history_trace->get_length(); i++) {
-        data_array.add(history_trace->get_value(i));
-      }
-    }
-    root["state"] = state;
+    set_json_icon_state_value(root, obj, "sensor-" + obj->get_object_id(), state, value, start_config);
     if (start_config == DETAIL_ALL) {
       if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
         root["sorting_weight"] = this->sorting_entitys_[obj].weight;
@@ -1607,17 +1553,17 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) {
   if (request->url() == "/")
     return true;
 
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
   if (request->url() == "/0.css")
     return true;
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
   if (request->url() == "/0.js")
     return true;
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_PRIVATE_NETWORK_ACCESS
+#ifdef USE_WEBSERVER_PRIVATE_NETWORK_ACCESS
   if (request->method() == HTTP_OPTIONS && request->hasHeader(HEADER_CORS_REQ_PNA)) {
 #ifdef USE_ARDUINO
     // Header needs to be added to interesting header list for it to not be
@@ -1740,21 +1686,21 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
     return;
   }
 
-#ifdef USE_WEBSERVER_TRACE_CSS_INCLUDE
+#ifdef USE_WEBSERVER_CSS_INCLUDE
   if (request->url() == "/0.css") {
     this->handle_css_request(request);
     return;
   }
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_JS_INCLUDE
+#ifdef USE_WEBSERVER_JS_INCLUDE
   if (request->url() == "/0.js") {
     this->handle_js_request(request);
     return;
   }
 #endif
 
-#ifdef USE_WEBSERVER_TRACE_PRIVATE_NETWORK_ACCESS
+#ifdef USE_WEBSERVER_PRIVATE_NETWORK_ACCESS
   if (request->method() == HTTP_OPTIONS && request->hasHeader(HEADER_CORS_REQ_PNA)) {
     this->handle_pna_cors_request(request);
     return;
