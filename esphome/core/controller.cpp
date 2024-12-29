@@ -29,6 +29,12 @@ void Controller::setup_controller(bool include_internal) {
       obj->add_on_state_callback([this, obj](float state) { this->on_sensor_update(obj, state); });
   }
 #endif
+#ifdef USE_HISTORY_CONTAINER
+  for (auto *obj : App.get_history_containers()) {
+    if (include_internal || !obj->is_internal())
+      obj->add_on_update_callback([this, obj]() { this->on_history_container_update(obj); });
+  }
+#endif
 #ifdef USE_SWITCH
   for (auto *obj : App.get_switches()) {
     if (include_internal || !obj->is_internal())

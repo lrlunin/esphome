@@ -38,6 +38,11 @@ void HistoryContainer::take_sample(float value) {
   this->count_ = (this->count_ + 1) % this->length_;
   ESP_LOGI(TAG, "History update with value: %f", value);
   this->last_sample_ = tm;
+  this->on_update_callback_.call();
+}
+
+void HistoryContainer::add_on_update_callback(std::function<void()> &&callback) {
+  this->on_update_callback_.add(std::move(callback));
 }
 
 void HistoryContainer::setup() { this->init(); }

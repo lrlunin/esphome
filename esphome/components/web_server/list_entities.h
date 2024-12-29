@@ -27,6 +27,9 @@ class ListEntitiesIterator : public ComponentIterator {
 #ifdef USE_SENSOR
   bool on_sensor(sensor::Sensor *sensor) override;
 #endif
+#ifdef USE_HISTORY_CONTAINER
+  bool on_history_container(history_container::HistoryContainer *history_container) override;
+#endif
 #ifdef USE_SWITCH
   bool on_switch(switch_::Switch *a_switch) override;
 #endif

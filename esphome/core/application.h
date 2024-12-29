@@ -15,6 +15,9 @@
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
+#ifdef USE_HISTORY_CONTAINER
+#include "esphome/components/history_container/history_container.h"
+#endif
 #ifdef USE_SWITCH
 #include "esphome/components/switch/switch.h"
 #endif
@@ -105,6 +108,12 @@ class Application {
 
 #ifdef USE_SENSOR
   void register_sensor(sensor::Sensor *sensor) { this->sensors_.push_back(sensor); }
+#endif
+
+#ifdef USE_HISTORY_CONTAINER
+  void register_history_container(history_container::HistoryContainer *history_container) {
+    this->history_containers_.push_back(history_container);
+  }
 #endif
 
 #ifdef USE_SWITCH
@@ -277,6 +286,18 @@ class Application {
   const std::vector<sensor::Sensor *> &get_sensors() { return this->sensors_; }
   sensor::Sensor *get_sensor_by_key(uint32_t key, bool include_internal = false) {
     for (auto *obj : this->sensors_) {
+      if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal()))
+        return obj;
+    }
+    return nullptr;
+  }
+#endif
+#ifdef USE_HISTORY_CONTAINER
+  const std::vector<history_container::HistoryContainer *> &get_history_containers() {
+    return this->history_containers_;
+  }
+  history_container::HistoryContainer *get_history_container_by_key(uint32_t key, bool include_internal = false) {
+    for (auto *obj : this->history_containers_) {
       if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal()))
         return obj;
     }
@@ -487,6 +508,9 @@ class Application {
 #endif
 #ifdef USE_SENSOR
   std::vector<sensor::Sensor *> sensors_{};
+#endif
+#ifdef USE_HISTORY_CONTAINER
+  std::vector<history_container::HistoryContainer *> history_containers_{};
 #endif
 #ifdef USE_TEXT_SENSOR
   std::vector<text_sensor::TextSensor *> text_sensors_{};

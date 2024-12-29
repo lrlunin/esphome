@@ -30,9 +30,10 @@ class HistoryContainer : public Component, public EntityBase {
   int get_length() const { return length_; }
   data_point get_value(int idx) const { return samples_[(count_ + length_ - 1 - idx) % length_]; }
 
-  void add_on_state_callback(std::function<void(float)> &&callback);
+  void add_on_update_callback(std::function<void()> &&callback);
 
  protected:
+  CallbackManager<void()> on_update_callback_;
   uint32_t last_sample_;
   uint32_t period_{0};    /// in ms
   uint32_t update_time_;  /// in ms

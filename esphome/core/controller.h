@@ -16,6 +16,9 @@
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
+#ifdef USE_HISTORY_CONTAINER
+#include "esphome/components/history_container/history_container.h"
+#endif
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
 #endif
@@ -81,6 +84,9 @@ class Controller {
 #endif
 #ifdef USE_SENSOR
   virtual void on_sensor_update(sensor::Sensor *obj, float state){};
+#endif
+#ifdef USE_HISTORY_CONTAINER
+  virtual void on_history_container_update(history_container::HistoryContainer *obj){};
 #endif
 #ifdef USE_SWITCH
   virtual void on_switch_update(switch_::Switch *obj, bool state){};

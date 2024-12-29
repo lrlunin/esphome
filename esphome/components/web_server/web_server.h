@@ -157,6 +157,15 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   std::string sensor_json(sensor::Sensor *obj, float value, JsonDetail start_config);
 #endif
 
+#ifdef USE_HISTORY_CONTAINER
+  void on_history_container_update(history_container::HistoryContainer *obj) override;
+  /// Handle a history container request under '/history_container/<id>'.
+  void handle_history_container_request(AsyncWebServerRequest *request, const UrlMatch &match);
+
+  /// Dump the history container state with its value as a JSON string.
+  std::string history_container_json(history_container::HistoryContainer *obj, JsonDetail start_config);
+#endif
+
 #ifdef USE_SWITCH
   void on_switch_update(switch_::Switch *obj, bool state) override;
 

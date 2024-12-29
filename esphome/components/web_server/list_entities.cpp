@@ -52,6 +52,15 @@ bool ListEntitiesIterator::on_sensor(sensor::Sensor *sensor) {
   return true;
 }
 #endif
+#ifdef USE_HISTORY_CONTAINER
+bool ListEntitiesIterator::on_history_container(history_container::HistoryContainer *history_container) {
+  if (this->web_server_->events_.count() == 0)
+    return true;
+  this->web_server_->events_.send(this->web_server_->history_container_json(history_container, DETAIL_ALL).c_str(),
+                                  "state");
+  return true;
+}
+#endif
 #ifdef USE_SWITCH
 bool ListEntitiesIterator::on_switch(switch_::Switch *a_switch) {
   if (this->web_server_->events_.count() == 0)

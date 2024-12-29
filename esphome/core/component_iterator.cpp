@@ -103,6 +103,21 @@ void ComponentIterator::advance() {
       }
       break;
 #endif
+#ifdef USE_HISTORY_CONTAINER
+    case IteratorState::HISTORY_CONTAINER:
+      if (this->at_ >= App.get_history_containers().size()) {
+        advance_platform = true;
+      } else {
+        auto *history_container = App.get_history_containers()[this->at_];
+        if (history_container->is_internal() && !this->include_internal_) {
+          success = true;
+          break;
+        } else {
+          success = this->on_history_container(history_container);
+        }
+      }
+      break;
+#endif
 #ifdef USE_SWITCH
     case IteratorState::SWITCH:
       if (this->at_ >= App.get_switches().size()) {

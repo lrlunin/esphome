@@ -8,6 +8,10 @@
 #include "esphome/components/esp32_camera/esp32_camera.h"
 #endif
 
+#ifdef USE_HISTORY_CONTAINER
+#include "esphome/components/history_container/history_container.h"
+#endif
+
 namespace esphome {
 
 #ifdef USE_API
@@ -35,6 +39,9 @@ class ComponentIterator {
 #endif
 #ifdef USE_SENSOR
   virtual bool on_sensor(sensor::Sensor *sensor) = 0;
+#endif
+#ifdef USE_HISTORY_CONTAINER
+  virtual bool on_history_container(history_container::HistoryContainer *history_container) = 0;
 #endif
 #ifdef USE_SWITCH
   virtual bool on_switch(switch_::Switch *a_switch) = 0;
@@ -110,6 +117,9 @@ class ComponentIterator {
 #endif
 #ifdef USE_SENSOR
     SENSOR,
+#endif
+#ifdef USE_HISTORY_CONTAINER
+    HISTORY_CONTAINER,
 #endif
 #ifdef USE_SWITCH
     SWITCH,
