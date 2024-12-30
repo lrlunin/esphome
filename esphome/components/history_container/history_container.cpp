@@ -53,6 +53,8 @@ void HistoryContainer::dump_config() {
   ESP_LOGCONFIG(TAG, "History Container '%s':", this->get_name().c_str());
   ESP_LOGCONFIG(TAG, "  Length: %d", this->length_);
   ESP_LOGCONFIG(TAG, "  Sensor: %s", this->sensor_->get_name().c_str());
+  ESP_LOGCONFIG(TAG, "  Icon: %s", this->get_icon().c_str());
+  ESP_LOGCONFIG(TAG, "  Unit of Measurement: %s", this->get_unit_of_measurement().c_str());
 }
 
 }  // namespace history_container

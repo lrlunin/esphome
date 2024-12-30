@@ -15,7 +15,7 @@ struct data_point {
 };
 
 // we create a container for history data FOR EACH sensor
-class HistoryContainer : public Component, public EntityBase {
+class HistoryContainer : public Component, public EntityBase, public EntityBase_UnitOfMeasurement {
  public:
   void init();
   HistoryContainer() = default;
@@ -29,6 +29,10 @@ class HistoryContainer : public Component, public EntityBase {
   void set_length(int length) { length_ = length; }
   int get_length() const { return length_; }
   data_point get_value(int idx) const { return samples_[(count_ + length_ - 1 - idx) % length_]; }
+
+  std::string get_icon() const { return this->sensor_->get_icon(); }
+  EntityCategory get_entity_category() const { return this->sensor_->get_entity_category(); }
+  std::string get_unit_of_measurement() const { return this->sensor_->get_unit_of_measurement(); }
 
   void add_on_update_callback(std::function<void()> &&callback);
 

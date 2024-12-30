@@ -290,36 +290,23 @@ void WebServer::handle_history_container_request(AsyncWebServerRequest *request,
 }
 std::string WebServer::history_container_json(history_container::HistoryContainer *obj, JsonDetail start_config) {
   return json::build_json([this, obj, start_config](JsonObject root) {
-    // std::string state;
-    // if (std::isnan(value)) {
-    //   state = "NA";
-    // } else {
-    //   state = value_accuracy_to_string(value, obj->get_accuracy_decimals());
-    //   if (!obj->get_unit_of_measurement().empty())
-    //     state += " " + obj->get_unit_of_measurement();
-    // }
-    root["id"] = "history-container" + obj->get_object_id();
-    root["name"] = obj->get_name();
+    set_json_id(root, obj, "history_container-" + obj->get_object_id(), start_config);
     JsonArray timestamps_array = root.createNestedArray("timestamps");
     JsonArray values_array = root.createNestedArray("values");
-    // this needs to be replaced with samples->get_value(i)
     for (uint32_t i = 0; i < obj->get_length(); i++) {
       timestamps_array.add(obj->get_value(i).time);
       values_array.add(obj->get_value(i).value);
     }
-
-    // root["state"] = state;
-    //  if (start_config == DETAIL_ALL) {
-    //    if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
-    //      root["sorting_weight"] = this->sorting_entitys_[obj].weight;
-    //      if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
-    //        root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
-    //      }
-    //    }
-    //  TODO: add history container unit of measurement
-    //  if (!obj->get_unit_of_measurement().empty())
-    //    root["uom"] = obj->get_unit_of_measurement();
-    // }
+    if (start_config == DETAIL_ALL) {
+      if (this->sorting_entitys_.find(obj) != this->sorting_entitys_.end()) {
+        root["sorting_weight"] = this->sorting_entitys_[obj].weight;
+        if (this->sorting_groups_.find(this->sorting_entitys_[obj].group_id) != this->sorting_groups_.end()) {
+          root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[obj].group_id].name;
+        }
+      }
+      if (!obj->get_unit_of_measurement().empty())
+        root["uom"] = obj->get_unit_of_measurement();
+    };
   });
 }
 #endif
